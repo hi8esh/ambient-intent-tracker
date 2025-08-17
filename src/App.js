@@ -70,7 +70,7 @@ function App() {
     }
   };
 
-  // New handler for when intentions are modified (edit/delete)
+  // Handler for when intentions are modified (edit/delete)
   const handleIntentionsChange = (updatedIntentions) => {
     setIntentions(updatedIntentions);
   };

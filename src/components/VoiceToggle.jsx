@@ -1,65 +1,37 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import '../styles/components.css';
 
 const VoiceToggle = ({ isEnabled, onToggle, isSupported }) => {
-  const [isAnimating, setIsAnimating] = useState(false);
-  const [showPermissionPrompt, setShowPermissionPrompt] = useState(false);
-
-  useEffect(() => {
-    if (isEnabled) {
-      setIsAnimating(true);
-    } else {
-      setIsAnimating(false);
-    }
-  }, [isEnabled]);
+  const [showPermissionModal, setShowPermissionModal] = useState(false);
 
   const handleToggle = async () => {
     if (!isSupported) {
-      alert('Voice recognition is not supported in this browser. Please use Chrome, Edge, or Safari.');
+      alert('Voice recognition is not supported in your browser. Please use Chrome, Edge, or Safari.');
       return;
     }
 
-    // Check microphone permission
-    try {
-      const permission = await navigator.permissions.query({ name: 'microphone' });
-      
-      if (permission.state === 'denied') {
-        setShowPermissionPrompt(true);
-        return;
+    if (!isEnabled) {
+      // Request microphone permission
+      try {
+        await navigator.mediaDevices.getUserMedia({ audio: true });
+        onToggle();
+      } catch (error) {
+        console.error('Microphone permission denied:', error);
+        setShowPermissionModal(true);
       }
-
-      if (permission.state === 'prompt') {
-        try {
-          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-          stream.getTracks().forEach(track => track.stop()); // Clean up
-        } catch (error) {
-          console.error('Microphone permission denied:', error);
-          setShowPermissionPrompt(true);
-          return;
-        }
-      }
-
-      onToggle();
-    } catch (error) {
-      console.error('Error checking permissions:', error);
-      // Fallback - try to toggle anyway
+    } else {
       onToggle();
     }
-  };
-
-  const dismissPermissionPrompt = () => {
-    setShowPermissionPrompt(false);
   };
 
   if (!isSupported) {
     return (
       <div className="voice-toggle unsupported">
         <div className="voice-status">
-          <span className="status-icon">🚫</span>
-          <span className="status-text">Voice capture not supported in this browser</span>
+          <span>⚠️ Voice recognition not supported</span>
         </div>
         <div className="browser-hint">
-          Try Chrome, Edge, or Safari for voice features
+          Try using Chrome, Edge, or Safari for voice features
         </div>
       </div>
     );
@@ -69,12 +41,12 @@ const VoiceToggle = ({ isEnabled, onToggle, isSupported }) => {
     <div className="voice-toggle">
       <div className="toggle-container">
         <button
-          className={`voice-btn ${isEnabled ? 'active' : ''} ${isAnimating ? 'listening' : ''}`}
+          className={`voice-btn ${isEnabled ? 'active' : ''} ${isEnabled ? 'listening' : ''}`}
           onClick={handleToggle}
           title={isEnabled ? 'Stop voice capture' : 'Start voice capture'}
         >
           <div className="microphone-icon">
-            🎤
+            {isEnabled ? '🎤' : '🎙️'}
             {isEnabled && (
               <div className="sound-waves">
                 <div className="wave wave-1"></div>
@@ -89,13 +61,13 @@ const VoiceToggle = ({ isEnabled, onToggle, isSupported }) => {
           <div className={`status-indicator ${isEnabled ? 'active' : ''}`}>
             <div className="status-dot"></div>
             <span className="status-text">
-              {isEnabled ? 'Listening for intentions...' : 'Voice capture off'}
+              {isEnabled ? 'Voice Capture Active' : 'Voice Capture Off'}
             </span>
           </div>
           
           {isEnabled && (
             <div className="listening-hint">
-              Say phrases like "I want to..." or "Maybe I should..."
+              Listening for your thoughts and intentions...
             </div>
           )}
         </div>
@@ -104,45 +76,52 @@ const VoiceToggle = ({ isEnabled, onToggle, isSupported }) => {
       {isEnabled && (
         <div className="voice-visualization">
           <div className="frequency-bars">
-            {[...Array(5)].map((_, i) => (
-              <div key={i} className={`bar bar-${i + 1}`}></div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {showPermissionPrompt && (
-        <div className="permission-modal">
-          <div className="modal-backdrop" onClick={dismissPermissionPrompt}></div>
-          <div className="modal-content">
-            <h3>🎤 Microphone Permission Required</h3>
-            <p>
-              To capture your voice intentions, please allow microphone access when prompted by your browser.
-            </p>
-            <div className="permission-steps">
-              <div className="step">
-                <strong>1.</strong> Click the microphone icon in your browser's address bar
-              </div>
-              <div className="step">
-                <strong>2.</strong> Select "Allow" to grant microphone permission
-              </div>
-              <div className="step">
-                <strong>3.</strong> Try enabling voice capture again
-              </div>
-            </div>
-            <div className="modal-actions">
-              <button onClick={dismissPermissionPrompt} className="btn-secondary">
-                Got it
-              </button>
-            </div>
+            <div className="bar bar-1"></div>
+            <div className="bar bar-2"></div>
+            <div className="bar bar-3"></div>
+            <div className="bar bar-4"></div>
+            <div className="bar bar-5"></div>
           </div>
         </div>
       )}
 
       <div className="voice-privacy-note">
         <span className="privacy-icon">🔒</span>
-        <span>Voice processing happens locally - nothing is sent to external servers</span>
+        Voice processing happens locally in your browser. No audio is sent to external servers.
       </div>
+
+      {showPermissionModal && (
+        <div className="permission-modal">
+          <div className="modal-backdrop" onClick={() => setShowPermissionModal(false)}></div>
+          <div className="modal-content">
+            <h3>🎤 Microphone Permission Required</h3>
+            <p>
+              To use voice capture, please allow microphone access when prompted by your browser.
+            </p>
+            
+            <div className="permission-steps">
+              <div className="step">
+                1. Click the microphone icon in your browser's address bar
+              </div>
+              <div className="step">
+                2. Select "Allow" to grant permission
+              </div>
+              <div className="step">
+                3. Try the voice toggle again
+              </div>
+            </div>
+
+            <div className="modal-actions">
+              <button 
+                onClick={() => setShowPermissionModal(false)}
+                className="btn-secondary"
+              >
+                Got it
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

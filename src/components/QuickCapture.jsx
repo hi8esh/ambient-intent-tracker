@@ -19,18 +19,18 @@ const QuickCapture = ({ onIntentionSaved }) => {
   ];
 
   useEffect(() => {
-    // Cycle through placeholders
+    // Cycle through placeholders every 3s
     let currentIndex = 0;
     setPlaceholder(placeholders[0]);
-    
+
     const placeholderInterval = setInterval(() => {
       currentIndex = (currentIndex + 1) % placeholders.length;
       setPlaceholder(placeholders[currentIndex]);
     }, 3000);
 
-    // Set up keyboard shortcut
+    // Global shortcut Ctrl+I to focus textarea
     const handleKeyDown = (event) => {
-      if (event.ctrlKey && event.key === 'i') {
+      if (event.ctrlKey && (event.key === 'i' || event.key === 'I')) {
         event.preventDefault();
         inputRef.current?.focus();
       }
@@ -39,46 +39,54 @@ const QuickCapture = ({ onIntentionSaved }) => {
     window.addEventListener('keydown', handleKeyDown);
 
     return () => {
-      window.removeEventListener('keydown', handleKeyDown);
       clearInterval(placeholderInterval);
+      window.removeEventListener('keydown', handleKeyDown);
     };
   }, []);
 
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-    await saveIntention();
+  // Intention categorization helper
+  const classifyIntention = (text) => {
+    const lowerText = text.toLowerCase();
+
+    const categories = {
+      learning: /learn|study|course|skill|book|tutorial|education|knowledge/i,
+      health: /exercise|diet|health|fitness|sleep|meditation|workout|wellness/i,
+      career: /job|work|career|promotion|interview|resume|business/i,
+      creativity: /create|write|draw|music|art|design|creative|project/i,
+      relationships: /friend|family|relationship|social|meet|connect|love/i,
+      finance: /money|save|invest|budget|buy|purchase|financial|earn/i,
+      personal: /organize|clean|plan|goal|habit|routine|personal/i,
+    };
+
+    for (const [category, pattern] of Object.entries(categories)) {
+      if (pattern.test(lowerText)) return category;
+    }
+    return 'general';
   };
 
+  // Save intention to encrypted storage
   const saveIntention = async () => {
     const trimmedText = text.trim();
     if (!trimmedText || isSaving) return;
 
     setIsSaving(true);
-
     try {
       const intention = {
         text: trimmedText,
         timestamp: Date.now(),
         source: 'manual',
         category: classifyIntention(trimmedText),
-        processed: false
+        processed: false,
       };
 
       await EncryptedStorage.saveIntention(intention);
-      
+
       setText('');
       setShowSavedMessage(true);
-      
-      // Notify parent component
-      if (onIntentionSaved) {
-        onIntentionSaved();
-      }
+      if (onIntentionSaved) onIntentionSaved();
 
       // Hide success message after 2 seconds
-      setTimeout(() => {
-        setShowSavedMessage(false);
-      }, 2000);
-
+      setTimeout(() => setShowSavedMessage(false), 2000);
     } catch (error) {
       console.error('Failed to save intention:', error);
       alert('Failed to save intention. Please try again.');
@@ -87,28 +95,13 @@ const QuickCapture = ({ onIntentionSaved }) => {
     }
   };
 
-  const classifyIntention = (text) => {
-    const lowerText = text.toLowerCase();
-    
-    const categories = {
-      learning: /learn|study|course|skill|book|tutorial|education|knowledge/i,
-      health: /exercise|diet|health|fitness|sleep|meditation|workout|wellness/i,
-      career: /job|work|career|promotion|interview|resume|business/i,
-      creativity: /create|write|draw|music|art|design|creative|project/i,
-      relationships: /friend|family|relationship|social|meet|connect|love/i,
-      finance: /money|save|invest|budget|buy|purchase|financial|earn/i,
-      personal: /organize|clean|plan|goal|habit|routine|personal/i
-    };
-
-    for (const [category, pattern] of Object.entries(categories)) {
-      if (pattern.test(lowerText)) {
-        return category;
-      }
-    }
-
-    return 'general';
+  // Handle form submission
+  const handleSubmit = (event) => {
+    event.preventDefault();
+    saveIntention();
   };
 
+  // Submit form on Enter (without Shift)
   const handleKeyPress = (event) => {
     if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault();

@@ -8,83 +8,77 @@ const IntentionStats = ({ intentions }) => {
         total: 0,
         today: 0,
         thisWeek: 0,
+        bySource: { manual: 0, voice: 0 },
         byCategory: {},
-        bySource: { voice: 0, manual: 0 },
         streak: 0,
-        averagePerDay: 0
+        avgPerDay: 0
       };
     }
 
     const now = new Date();
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const weekStart = new Date(todayStart);
-    weekStart.setDate(todayStart.getDate() - 7);
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const weekAgo = new Date(today.getTime() - (7 * 24 * 60 * 60 * 1000));
 
-    let today = 0;
-    let thisWeek = 0;
-    const byCategory = {};
-    const bySource = { voice: 0, manual: 0 };
-    const dailyCounts = {};
+    // Calculate basic metrics
+    const todayCount = intentions.filter(i => 
+      new Date(i.timestamp) >= today
+    ).length;
 
-    intentions.forEach(intention => {
-      const intentionDate = new Date(intention.timestamp);
-      
-      // Count today's intentions
-      if (intentionDate >= todayStart) {
-        today++;
-      }
-      
-      // Count this week's intentions
-      if (intentionDate >= weekStart) {
-        thisWeek++;
-      }
+    const thisWeekCount = intentions.filter(i => 
+      new Date(i.timestamp) >= weekAgo
+    ).length;
 
-      // Count by category
+    // Count by source
+    const bySource = intentions.reduce((acc, intention) => {
+      acc[intention.source] = (acc[intention.source] || 0) + 1;
+      return acc;
+    }, { manual: 0, voice: 0 });
+
+    // Count by category
+    const byCategory = intentions.reduce((acc, intention) => {
       const category = intention.category || 'general';
-      byCategory[category] = (byCategory[category] || 0) + 1;
+      acc[category] = (acc[category] || 0) + 1;
+      return acc;
+    }, {});
 
-      // Count by source
-      if (intention.source === 'voice') {
-        bySource.voice++;
-      } else {
-        bySource.manual++;
-      }
-
-      // Count daily for streak calculation
-      const dateKey = intentionDate.toDateString();
-      dailyCounts[dateKey] = (dailyCounts[dateKey] || 0) + 1;
-    });
-
-    // Calculate streak
+    // Calculate streak (consecutive days with intentions)
     let streak = 0;
-    const currentDate = new Date(todayStart);
-    
-    while (true) {
-      const dateKey = currentDate.toDateString();
-      if (dailyCounts[dateKey] && dailyCounts[dateKey] > 0) {
+    const intentionDates = [...new Set(
+      intentions.map(i => 
+        new Date(i.timestamp).toDateString()
+      )
+    )].sort((a, b) => new Date(b) - new Date(a));
+
+    for (let i = 0; i < intentionDates.length; i++) {
+      const currentDate = new Date(intentionDates[i]);
+      const expectedDate = new Date(today.getTime() - (i * 24 * 60 * 60 * 1000));
+      
+      if (currentDate.toDateString() === expectedDate.toDateString()) {
         streak++;
-        currentDate.setDate(currentDate.getDate() - 1);
       } else {
         break;
       }
     }
 
     // Calculate average per day
-    const oldestIntention = intentions.reduce((oldest, intention) => {
-      return intention.timestamp < oldest ? intention.timestamp : oldest;
-    }, Date.now());
+    const oldestIntention = intentions.reduce((oldest, current) => 
+      current.timestamp < oldest.timestamp ? current : oldest
+    , intentions[0]);
     
-    const daysSinceFirst = Math.max(1, Math.ceil((Date.now() - oldestIntention) / (1000 * 60 * 60 * 24)));
-    const averagePerDay = intentions.length / daysSinceFirst;
+    const daysSinceFirst = Math.max(1, Math.ceil(
+      (now.getTime() - oldestIntention.timestamp) / (24 * 60 * 60 * 1000)
+    ));
+    
+    const avgPerDay = Math.round((intentions.length / daysSinceFirst) * 10) / 10;
 
     return {
       total: intentions.length,
-      today,
-      thisWeek,
-      byCategory,
+      today: todayCount,
+      thisWeek: thisWeekCount,
       bySource,
+      byCategory,
       streak,
-      averagePerDay
+      avgPerDay
     };
   }, [intentions]);
 
@@ -102,20 +96,13 @@ const IntentionStats = ({ intentions }) => {
     return icons[category] || icons.general;
   };
 
-  const getTopCategories = () => {
-    return Object.entries(stats.byCategory)
-      .sort(([,a], [,b]) => b - a)
-      .slice(0, 3);
-  };
-
   if (stats.total === 0) {
     return (
       <div className="intention-stats empty">
-        <div className="stats-header">
-          <h3>📊 Your Stats</h3>
-        </div>
+        <h3>📊 Your Stats</h3>
         <div className="empty-stats">
-          <p>Start capturing intentions to see your patterns!</p>
+          <span>🌱</span>
+          <p>Start capturing intentions to see your insights!</p>
         </div>
       </div>
     );
@@ -123,49 +110,50 @@ const IntentionStats = ({ intentions }) => {
 
   return (
     <div className="intention-stats">
-      <div className="stats-header">
-        <h3>📊 Your Stats</h3>
-      </div>
-
+      <h3>📊 Your Insights</h3>
+      
       <div className="stats-grid">
         <div className="stat-card primary">
           <div className="stat-value">{stats.total}</div>
           <div className="stat-label">Total Intentions</div>
         </div>
-
+        
         <div className="stat-card">
           <div className="stat-value">{stats.today}</div>
           <div className="stat-label">Today</div>
         </div>
-
-        <div className="stat-card">
-          <div className="stat-value">{stats.thisWeek}</div>
-          <div className="stat-label">This Week</div>
-        </div>
-
+        
         <div className="stat-card">
           <div className="stat-value">{stats.streak}</div>
           <div className="stat-label">Day Streak</div>
+        </div>
+        
+        <div className="stat-card">
+          <div className="stat-value">{stats.avgPerDay}</div>
+          <div className="stat-label">Avg / Day</div>
         </div>
       </div>
 
       <div className="stats-details">
         <div className="stat-section">
-          <h4>📱 Input Sources</h4>
-          <div className="source-breakdown">
-            <div className="source-item">
-              <span className="source-icon">🎤</span>
-              <span className="source-label">Voice</span>
-              <span className="source-count">{stats.bySource.voice}</span>
-              <div className="source-bar">
-                <div 
-                  className="source-fill voice"
-                  style={{ 
-                    width: `${stats.total ? (stats.bySource.voice / stats.total) * 100 : 0}%` 
-                  }}
-                ></div>
-              </div>
+          <h4>📈 Recent Activity</h4>
+          <div className="activity-metrics">
+            <div className="metric">
+              <span className="metric-label">This Week</span>
+              <span className="metric-value">{stats.thisWeek}</span>
             </div>
+            <div className="metric">
+              <span className="metric-label">Growth Trend</span>
+              <span className="metric-value">
+                {stats.thisWeek > 7 ? '📈 Up' : stats.thisWeek === 7 ? '➡️ Steady' : '📉 Down'}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="stat-section">
+          <h4>🎙️ Input Sources</h4>
+          <div className="source-breakdown">
             <div className="source-item">
               <span className="source-icon">⌨️</span>
               <span className="source-label">Manual</span>
@@ -174,7 +162,21 @@ const IntentionStats = ({ intentions }) => {
                 <div 
                   className="source-fill manual"
                   style={{ 
-                    width: `${stats.total ? (stats.bySource.manual / stats.total) * 100 : 0}%` 
+                    width: `${(stats.bySource.manual / stats.total) * 100}%` 
+                  }}
+                ></div>
+              </div>
+            </div>
+            
+            <div className="source-item">
+              <span className="source-icon">🎤</span>
+              <span className="source-label">Voice</span>
+              <span className="source-count">{stats.bySource.voice}</span>
+              <div className="source-bar">
+                <div 
+                  className="source-fill voice"
+                  style={{ 
+                    width: `${(stats.bySource.voice / stats.total) * 100}%` 
                   }}
                 ></div>
               </div>
@@ -183,45 +185,30 @@ const IntentionStats = ({ intentions }) => {
         </div>
 
         <div className="stat-section">
-          <h4>🎯 Top Categories</h4>
+          <h4>🏷️ Top Categories</h4>
           <div className="category-breakdown">
-            {getTopCategories().map(([category, count]) => (
-              <div key={category} className="category-item">
-                <span className="category-icon">{getCategoryIcon(category)}</span>
-                <span className="category-label">
-                  {category.charAt(0).toUpperCase() + category.slice(1)}
-                </span>
-                <span className="category-count">{count}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="stat-section">
-          <h4>⚡ Activity</h4>
-          <div className="activity-metrics">
-            <div className="metric">
-              <span className="metric-label">Average per day</span>
-              <span className="metric-value">
-                {stats.averagePerDay.toFixed(1)}
-              </span>
-            </div>
-            <div className="metric">
-              <span className="metric-label">Most active day</span>
-              <span className="metric-value">
-                {stats.today > 0 ? 'Today' : 'Yesterday'}
-              </span>
-            </div>
+            {Object.entries(stats.byCategory)
+              .sort(([,a], [,b]) => b - a)
+              .slice(0, 5)
+              .map(([category, count]) => (
+                <div key={category} className="category-item">
+                  <span className="category-icon">
+                    {getCategoryIcon(category)}
+                  </span>
+                  <span className="category-label">
+                    {category.charAt(0).toUpperCase() + category.slice(1)}
+                  </span>
+                  <span className="category-count">{count}</span>
+                </div>
+              ))}
           </div>
         </div>
       </div>
 
-      {stats.streak > 0 && (
+      {stats.streak >= 5 && (
         <div className="achievement-badge">
           <span className="achievement-icon">🔥</span>
-          <span className="achievement-text">
-            {stats.streak} day{stats.streak !== 1 ? 's' : ''} of capturing intentions!
-          </span>
+          <span>On fire! {stats.streak} day streak!</span>
         </div>
       )}
     </div>

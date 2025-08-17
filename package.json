@@ -1,18 +1,19 @@
 {
   "name": "ambient-intent-tracker",
   "version": "1.0.0",
-  "description": "Privacy-first ambient intention tracking application",
+  "description": "Privacy-first ambient intention tracker with voice recognition and local encrypted storage",
+  "author": "Hitesh Sing Solanki",
+  "license": "MIT",
   "private": true,
   "dependencies": {
-    "@testing-library/jest-dom": "^5.17.0",
-    "@testing-library/react": "^13.4.0",
-    "@testing-library/user-event": "^13.5.0",
-    "compromise": "^14.12.0",
-    "natural": "^6.12.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-scripts": "^5.0.1",
-    "web-vitals": "^2.1.4"
+    "react-scripts": "5.0.1"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^5.17.0",
+    "@testing-library/react": "^13.4.0",
+    "@testing-library/user-event": "^14.5.2"
   },
   "scripts": {
     "start": "react-scripts start",
@@ -38,13 +39,21 @@
       "last 1 safari version"
     ]
   },
-  "homepage": ".",
   "keywords": [
+    "ambient-intent-tracker",
     "ambient",
     "intentions",
-    "privacy",
-    "react",
+    "intention-tracker",
     "voice-recognition",
-    "local-storage"
-  ]
+    "privacy",
+    "local-storage",
+    "encrypted",
+    "ambient-computing",
+    "self-improvement",
+    "mindfulness"
+  ],
+  "homepage": ".",
+  "engines": {
+    "node": ">=16.0.0"
+  }
 }

@@ -1,3 +1,5 @@
+// src/services/EncryptedStorage.js - Complete with CRUD operations
+
 class EncryptedStorage {
   constructor() {
     this.dbName = 'AmbientIntents';

@@ -166,14 +166,16 @@ const IntentionsList = ({ intentions, onIntentionsChange }) => {
         await navigator.clipboard.writeText(shareText);
         
         // Show temporary success message
-        const originalText = document.querySelector(`[data-share-id="${intention.storageId}"]`).textContent;
         const shareButton = document.querySelector(`[data-share-id="${intention.storageId}"]`);
+        const originalText = shareButton.textContent;
         shareButton.textContent = '✅ Copied!';
         shareButton.style.background = '#10b981';
+        shareButton.style.color = '#fff';
         
         setTimeout(() => {
           shareButton.textContent = originalText;
           shareButton.style.background = '';
+          shareButton.style.color = '';
         }, 2000);
       }
     } catch (error) {
@@ -254,9 +256,9 @@ const IntentionsList = ({ intentions, onIntentionsChange }) => {
         {filteredIntentions.map((intention, index) => (
           <div
             key={intention.storageId || index}
-            className={`intention-item ${showDetails === intention.storageId ? 'expanded' : ''}`}
+            className={`intention-item ${showDetails === intention.storageId ? 'expanded' : ''} ${editingId === intention.storageId ? 'editing' : ''}`}
           >
-            <div className="intention-main" onClick={() => toggleDetails(intention.storageId)}>
+            <div className="intention-main" onClick={() => editingId !== intention.storageId && toggleDetails(intention.storageId)}>
               <div className="intention-content">
                 <div className="intention-header">
                   <span
@@ -310,14 +312,16 @@ const IntentionsList = ({ intentions, onIntentionsChange }) => {
                 
                 <div className="intention-meta">
                   <span className="timestamp">{formatTime(intention.timestamp)}</span>
-                  <button className="details-toggle">
-                    {showDetails === intention.storageId ? 'Less' : 'More'}
-                  </button>
+                  {editingId !== intention.storageId && (
+                    <button className="details-toggle">
+                      {showDetails === intention.storageId ? 'Less' : 'More'}
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
 
-            {showDetails === intention.storageId && (
+            {showDetails === intention.storageId && editingId !== intention.storageId && (
               <div className="intention-details">
                 <div className="details-grid">
                   <div className="detail-item">
