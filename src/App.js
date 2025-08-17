@@ -70,6 +70,11 @@ function App() {
     }
   };
 
+  // New handler for when intentions are modified (edit/delete)
+  const handleIntentionsChange = (updatedIntentions) => {
+    setIntentions(updatedIntentions);
+  };
+
   const toggleVoiceCapture = () => {
     if (!voiceCapture) return;
 
@@ -135,7 +140,10 @@ function App() {
           </div>
           
           <div className="intentions-panel">
-            <IntentionsList intentions={intentions} />
+            <IntentionsList 
+              intentions={intentions} 
+              onIntentionsChange={handleIntentionsChange}
+            />
           </div>
         </div>
       </main>

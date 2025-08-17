@@ -191,6 +191,47 @@ class EncryptedStorage {
     });
   }
 
+  async updateIntention(storageId, updatedIntention) {
+    if (!this.isInitialized) {
+      throw new Error('Storage not initialized');
+    }
+
+    // Add metadata
+    const intentionWithMeta = {
+      ...updatedIntention,
+      updatedAt: new Date().toISOString(),
+      version: '1.0'
+    };
+
+    // Encrypt the updated intention data
+    const { encrypted, iv } = await this.encrypt(intentionWithMeta);
+
+    // Prepare data for storage
+    const storageData = {
+      id: storageId,
+      encrypted: Array.from(encrypted),
+      iv: Array.from(iv),
+      timestamp: intentionWithMeta.timestamp,
+      source: intentionWithMeta.source,
+      category: intentionWithMeta.category || 'general'
+    };
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.db.transaction([this.storeName], 'readwrite');
+      const store = transaction.objectStore(this.storeName);
+      const request = store.put(storageData);
+
+      request.onsuccess = () => {
+        console.log('Intention updated successfully');
+        resolve(request.result);
+      };
+
+      request.onerror = () => {
+        reject(new Error(`Failed to update intention: ${request.error}`));
+      };
+    });
+  }
+
   async getAllIntentions() {
     if (!this.isInitialized) {
       throw new Error('Storage not initialized');
